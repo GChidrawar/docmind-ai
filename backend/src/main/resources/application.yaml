@@ -1,0 +1,22 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: DocMindAI
+
+  profiles:
+    active: dev
+
+  sql:
+    init:
+      mode: ALWAYS
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 50MB
+
+app:
+  ai:
+    provider: ${AI_PROVIDER:ollama}   # switch: "ollama" or "openai"

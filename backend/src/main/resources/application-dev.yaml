@@ -1,0 +1,47 @@
+#database configurations
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:docmind_db}
+    username: ${DB_USER:admin}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        time_zone: "Asia/Kolkata"
+
+#AI PROVIDERS (both configured — active one picked via app.ai.provider)
+  #ollama ai configurations
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+      chat:
+        model: ${CHAT_MODEL:codellama}
+      embedding:
+          model: ${EMBEDDING_MODEL:nomic-embed-text}
+    #open ai configurations
+    openai:
+      api-key: ${OPENAI_API_KEY:demo-key}
+      chat:
+        model: ${CHAT_MODEL:gpt-4o-mini}
+        temperature: 0.2
+      embedding:
+        model: ${EMBEDDING_MODEL:text-embedding-3-small}
+
+    #Vector Store Configuration
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        table-name: vector_store
+        schema-name: public
+        initialize-schema: true
