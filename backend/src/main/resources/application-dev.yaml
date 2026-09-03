@@ -17,12 +17,13 @@ spring:
         order_inserts: true
         order_updates: true
         time_zone: "Asia/Kolkata"
+    show-sql: true
 
 #AI PROVIDERS (both configured — active one picked via app.ai.provider)
   #ollama ai configurations
   ai:
     ollama:
-      base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
         model: ${CHAT_MODEL:codellama}
       embedding:
