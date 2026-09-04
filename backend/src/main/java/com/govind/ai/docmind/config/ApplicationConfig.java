@@ -20,20 +20,20 @@ public class ApplicationConfig {
         return new OpenAPI()
                 .info(
                         new Info()
-                                .title("DocMind — AI Document Intelligence & RAG Backend APIs")
-                                .description("REST API for DocMind: Multi-format document ingestion, vector embeddings with PostgreSQL pgvector, and hybrid conversational Q&A with Ollama.")
+                                .title("DocMindAI — AI Document Intelligence & RAG APIs")
+                                .description("REST API for DocMindAI: multi-format document ingestion, vector embeddings with PostgreSQL pgvector, and  hybrid conversational Q&A powered by Ollama")
                                 .version("1.0.0")
                                 .contact(new Contact()
-                                        .name("Govind Technologies")
-                                        .email("support@gtechnolgoies.com")
-                                        .url("https://gtechnologies.com")
+                                        .name("CG Technologies")
+                                        .email("support@cgtech.dev")
+                                        .url("https://cgtech.dev")
                                 )
                 );
     }
 
 
     @Bean
-    public ModelMapper modelMapper(){
+    public ModelMapper modelMapper() {
         return new ModelMapper();
     }
 }
