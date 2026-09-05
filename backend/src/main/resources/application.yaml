@@ -1,6 +1,7 @@
 server:
   port: 9090
-
+  servlet:
+    context-path: /docmind
 spring:
   application:
     name: DocMindAI
@@ -17,6 +18,18 @@ spring:
       max-file-size: 25MB
       max-request-size: 50MB
 
+# Application-specific configuration
 app:
   ai:
-    provider: ${AI_PROVIDER:ollama}   # switch: "ollama" or "openai"
+    # Supported providers: ollama, openai
+    provider: ${AI_PROVIDER:ollama}
+
+  rag:
+    # Target chunk size in tokens
+    chunk-size: 700
+
+    # Number of relevant chunks to retrieve
+    top-k: 5
+
+    # Minimum similarity score for retrieved chunks
+    similarity-threshold: 0.0

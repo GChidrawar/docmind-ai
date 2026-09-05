@@ -1,6 +1,7 @@
 package com.govind.ai.docmind.service;
 
 import com.govind.ai.docmind.dto.DocumentResponseDto;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**

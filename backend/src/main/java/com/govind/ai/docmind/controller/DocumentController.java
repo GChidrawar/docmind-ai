@@ -4,6 +4,7 @@ import com.govind.ai.docmind.dto.ApiResponse;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
 import com.govind.ai.docmind.service.DocumentMetadataService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.FailedApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,21 @@ public class DocumentController {
 
     @Operation(
             summary = "Upload and index a document(PDF, DOCX, TEXT, MD, CSV)",
-            description = "This api is used to upload and index documents files."
+            description = "This api is used to upload and index documents files.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "201",
+                            description = "Document uploaded and indexed successfully"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid or empty file"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "500",
+                            description = "Document processing failed"
+                    )
+            }
     )
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentResponseDto>> uploadDocument(@RequestParam(value = "file") MultipartFile file) {

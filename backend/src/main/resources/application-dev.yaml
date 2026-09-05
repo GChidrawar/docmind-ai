@@ -16,7 +16,7 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
-        time_zone: "Asia/Kolkata"
+        #time_zone: "Asia/Kolkata"
     show-sql: true
 
 #AI PROVIDERS (both configured — active one picked via app.ai.provider)
@@ -42,7 +42,7 @@ spring:
       pgvector:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
-        dimensions: 1536
+        dimensions: 768
         table-name: vector_store
         schema-name: public
         initialize-schema: true

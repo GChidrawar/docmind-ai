@@ -18,7 +18,7 @@ public interface DocumentMetadataRepo extends JpaRepository<DocumentMetadata, UU
     /**
      * Finds all documents with the given processing status.
      *
-     * @param status the status to filter by (e.g. PENDING, PROCESSED, FAILED)
+     * @param status the status to filter by (e.g. UPLOADING, PROCESSING, INDEXED, FAILED)
      * @return list of documents matching the given status; empty list if none found
      */
     List<DocumentMetadata> findByStatus(DocumentStatus status);

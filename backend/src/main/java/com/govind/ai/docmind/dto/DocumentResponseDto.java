@@ -1,5 +1,6 @@
 package com.govind.ai.docmind.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.govind.ai.docmind.model.DocumentStatus;
 import lombok.*;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocumentResponseDto {
     private UUID id;
     private String fileName;

@@ -1,21 +1,19 @@
 package com.govind.ai.docmind.service.impl;
 
 import com.govind.ai.docmind.dto.DocumentResponseDto;
+import com.govind.ai.docmind.exception.DocumentProcessingException;
 import com.govind.ai.docmind.model.DocumentMetadata;
 import com.govind.ai.docmind.model.DocumentStatus;
 import com.govind.ai.docmind.repository.DocumentMetadataRepo;
+import com.govind.ai.docmind.service.DocumentIngestionService;
 import com.govind.ai.docmind.service.DocumentMetadataService;
 import com.govind.ai.docmind.service.DocumentParserService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.ai.document.Document;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -28,24 +26,77 @@ import java.util.List;
 public class DocumentMetadataServiceImpl implements DocumentMetadataService {
 
     private final DocumentMetadataRepo documentMetadataRepo;
-    private final DocumentParserService documentParserService;
+    private final DocumentParserService parserService;
+    private final DocumentIngestionService ingestionService;
 
     @Override
     public DocumentResponseDto uploadAndProcess(MultipartFile file) {
 
-        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
-        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+        if (file.isEmpty()) {
+            throw new DocumentProcessingException("Uploaded file is empty");
+        }
 
-        // Create and Save document metadata
-        DocumentMetadata documentMetadata = DocumentMetadata.builder().filename(fileName).contentType(contentType).status(DocumentStatus.UPLOADING).fileSize(file.getSize()).build();
-        documentMetadata = documentMetadataRepo.save(documentMetadata);
+        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octat-stream";
+
+        // Create document metadata and save
+        DocumentMetadata documentMetadata = DocumentMetadata
+                .builder()
+                .filename(fileName)
+                .contentType(contentType)
+                .status(DocumentStatus.UPLOADING)
+                .fileSize(file.getSize())
+                .build();
+
+        documentMetadataRepo.save(documentMetadata);
 
         try{
-            List<Document> documents = documentParserService.parse(file);
+            // Parse uploaded file
+            List<Document> documents = parserService.parse(file);
 
-        } catch (Exception e) {
+            // Chunk, embed and store in vector database
+            ingestionService.ingest(documentMetadata, documents);
 
+            // Mark document as successfully indexed
+            markAsIndexed(documentMetadata);
+            return buildResponse(documentMetadata);
+
+        } catch (DocumentProcessingException ex){
+            markAsFailed(documentMetadata, ex.getMessage() != null ? ex.getMessage() : "Unknown document processing error");
+            throw ex;
         }
-        return null;
+
+    }
+
+    /**
+     * Build API response.
+     */
+    private DocumentResponseDto buildResponse(DocumentMetadata metadata) {
+        return DocumentResponseDto.builder()
+                .id(metadata.getId())
+                .fileName(metadata.getFilename())
+                .fileSize(metadata.getFileSize())
+                .chunksCreated(metadata.getTotalChunks())
+                .status(metadata.getStatus())
+                .build();
+    }
+
+    /**
+     * Mark document as successfully indexed.
+     */
+    private void markAsIndexed(DocumentMetadata metadata) {
+        metadata.setStatus(DocumentStatus.INDEXED);
+        metadata.setTotalChunks(metadata.getTotalChunks());
+        metadata.setErrorMessage(null);
+        documentMetadataRepo.save(metadata);
+    }
+
+    /**
+     * Mark document as failed.
+     */
+    private void markAsFailed(DocumentMetadata metadata, String errorMessage) {
+        metadata.setStatus(DocumentStatus.FAILED);
+        metadata.setErrorMessage(errorMessage);
+        documentMetadataRepo.save(metadata);
     }
 }

@@ -31,7 +31,7 @@ public class DocumentParserService {
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
         String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "N/A";
 
-        log.info("Parsing document: {}, size: {} bytes, contentType: {}", fileName, file.getSize(), contentType);
+        log.info("Parsing file: {}, size: {} bytes, contentType: {}", fileName, file.getSize(), contentType);
 
         try {
             // convert file into the spring resource
@@ -49,7 +49,7 @@ public class DocumentParserService {
                 documents = parseGenericFile(resource);
             }
 
-            log.info("Parsed document: {}, chunks created: {}", fileName, documents.size());
+            log.info("Parsed file: {}, documents/pages extracted: {}", fileName, documents.size());
             return documents;
 
         } catch (IOException e) {
