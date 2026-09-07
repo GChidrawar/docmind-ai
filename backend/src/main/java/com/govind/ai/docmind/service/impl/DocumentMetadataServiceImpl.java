@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
     private final DocumentIngestionService ingestionService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DocumentResponseDto uploadAndProcess(MultipartFile file) {
 
         if (file.isEmpty()) {
@@ -59,10 +61,11 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
 
             // Mark document as successfully indexed
             markAsIndexed(documentMetadata);
+
             return buildResponse(documentMetadata);
 
         } catch (DocumentProcessingException ex){
-            markAsFailed(documentMetadata, ex.getMessage() != null ? ex.getMessage() : "Unknown document processing error");
+            log.error(ex.getMessage(), ex);
             throw ex;
         }
 

@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/documents")
 @Tag(
         name = "Document Management",
-        description = "Endpoints for uploading, listing and managing documents and their vectors embeddings."
+        description = "APIs for uploading, listing, managing documents, and their vector embeddings."
 )
 @RequiredArgsConstructor
 public class DocumentController {

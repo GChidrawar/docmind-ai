@@ -47,4 +47,11 @@ public record ApiResponse<T>(Boolean success, String message, T data, LocalDateT
     public static <T> ApiResponse<T> error(String message) {
         return ApiResponse.<T>builder().success(false).message(message).build();
     }
+
+    /**
+     * Builds an error response with a message and data
+     */
+    public static <T> ApiResponse<T> error(T data, String message) {
+        return ApiResponse.<T>builder().success(false).message(message).build();
+    }
 }
