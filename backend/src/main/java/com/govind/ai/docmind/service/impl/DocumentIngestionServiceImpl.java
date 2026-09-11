@@ -29,7 +29,6 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     private final AppProperties appProperties;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Integer ingest(DocumentMetadata metadata, List<Document> parsedDocs) {
 
         log.info("Starting document ingestion [id={}, name={}, pages={}]", metadata.getId(), metadata.getFilename(), parsedDocs.size());
@@ -61,15 +60,6 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             log.error("Failed to ingest document [id={}, name={}]", metadata.getId(), metadata.getFilename(), ex);
             throw new DocumentProcessingException(ex.getMessage());
         }
-    }
-
-    /**
-     * Mark document as currently being processed.
-     */
-    private void markAsProcessing(DocumentMetadata metadata, int totalPages) {
-        metadata.setStatus(DocumentStatus.PROCESSING);
-        metadata.setTotalPages(totalPages);
-        documentMetadataRepo.save(metadata);
     }
 
     /**
@@ -139,8 +129,17 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         vectorStore.add(chunks);
     }
 
+    /**
+     * Mark document as currently being processed.
+     */
+    private void markAsProcessing(DocumentMetadata metadata, int totalPages) {
+        metadata.setStatus(DocumentStatus.PROCESSING);
+        metadata.setTotalPages(totalPages);
+        documentMetadataRepo.save(metadata);
+    }
 
-    public void deleteDocumentVectors(String documentId) {
+
+    private void deleteDocumentVectors(String documentId) {
         log.info("Deleting vector chunks [documentId={}]", documentId);
         vectorStore.delete("documentId == '" + documentId + "'");
         log.info("Vector chunks deleted [documentId={}]", documentId);

@@ -11,7 +11,7 @@ import java.util.UUID;
  * @since 07-09-2026
  */
 public record ChatRequestDto(
-        @NotBlank(message = "Question cannot be empty")
+        @NotBlank(message = "Question can not be empty")
         String question,
         UUID documentId,
         @Min(value = 1, message = "topK must be greater than 0") @Max(value = 100, message = "topK must not exceed 100")

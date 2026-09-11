@@ -2,9 +2,9 @@ package com.govind.ai.docmind.controller;
 
 import com.govind.ai.docmind.dto.ApiResponse;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
+import com.govind.ai.docmind.model.DocumentStatus;
 import com.govind.ai.docmind.service.DocumentMetadataService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.FailedApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
  * @author govind.chidrawar
  * @since 04-09-2026
  */
-@RestController()
+@RestController
 @RequestMapping("/api/v1/documents")
 @Tag(
         name = "Document Management",
@@ -32,7 +32,7 @@ public class DocumentController {
     private final DocumentMetadataService documentService;
 
     @Operation(
-            summary = "Upload and index a document(PDF, DOCX, TEXT, MD, CSV)",
+            summary = "Upload and index a document(PDF and other common document formats via Apache Tika) ",
             description = "This api is used to upload and index documents files.",
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -40,19 +40,22 @@ public class DocumentController {
                             description = "Document uploaded and indexed successfully"
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                            responseCode = "400",
+                            responseCode = "422",
                             description = "Invalid or empty file"
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "500",
-                            description = "Document processing failed"
+                            description = "Unexpected error occurred during document processing"
                     )
             }
     )
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentResponseDto>> uploadDocument(@RequestParam(value = "file") MultipartFile file) {
         DocumentResponseDto documentResponseDto = this.documentService.uploadAndProcess(file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(documentResponseDto, "Documents uploaded and indexed successfully"));
+        if(documentResponseDto.getStatus() == DocumentStatus.INDEXED) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(documentResponseDto, "Document uploaded and indexed successfully"));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(ApiResponse.error(documentResponseDto, "Document upload failed"));
+        }
     }
-
 }

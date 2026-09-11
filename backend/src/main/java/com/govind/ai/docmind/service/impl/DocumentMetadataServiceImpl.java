@@ -31,7 +31,7 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
     private final DocumentIngestionService ingestionService;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public DocumentResponseDto uploadAndProcess(MultipartFile file) {
 
         if (file.isEmpty()) {
@@ -57,16 +57,19 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
             List<Document> documents = parserService.parse(file);
 
             // Chunk, embed and store in vector database
-            ingestionService.ingest(documentMetadata, documents);
+            Integer chunks = ingestionService.ingest(documentMetadata, documents);
 
             // Mark document as successfully indexed
             markAsIndexed(documentMetadata);
 
             return buildResponse(documentMetadata);
 
-        } catch (DocumentProcessingException ex){
-            log.error(ex.getMessage(), ex);
-            throw ex;
+        } catch (DocumentProcessingException ex) {
+            log.warn("Document processing failed [id={}, name={}]", documentMetadata.getId(), fileName, ex);
+            markAsFailed(documentMetadata, ex.getMessage());
+            return buildResponse(documentMetadata);
+        } catch (Exception ex) {
+            throw new DocumentProcessingException("Failed to process document: " + fileName, ex);
         }
 
     }
@@ -102,4 +105,5 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
         metadata.setErrorMessage(errorMessage);
         documentMetadataRepo.save(metadata);
     }
+
 }
