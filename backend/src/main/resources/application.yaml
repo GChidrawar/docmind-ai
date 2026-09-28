@@ -32,4 +32,4 @@ app:
     top-k: 5
 
     # Minimum similarity score for retrieved chunks
-    similarity-threshold: 0.0
+    similarity-threshold: 0.6

@@ -1,5 +1,6 @@
 package com.govind.ai.docmind.model;
 
+import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -52,5 +53,6 @@ public class DocumentMetadata {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
 
 }

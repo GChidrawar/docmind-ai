@@ -3,6 +3,7 @@ package com.govind.ai.docmind.repository;
 import com.govind.ai.docmind.model.DocumentMetadata;
 import com.govind.ai.docmind.model.DocumentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -30,4 +31,6 @@ public interface DocumentMetadataRepo extends JpaRepository<DocumentMetadata, UU
      */
     List<DocumentMetadata> findAllByOrderByCreatedAtDesc();
 
+    @Query("select d.id from DocumentMetadata d")
+    List<UUID> findAllIds();
 }

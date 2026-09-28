@@ -1,21 +1,26 @@
 package com.govind.ai.docmind.service.impl;
 
+import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
 import com.govind.ai.docmind.exception.DocumentProcessingException;
+import com.govind.ai.docmind.exception.ResourceNotFoundException;
 import com.govind.ai.docmind.model.DocumentMetadata;
 import com.govind.ai.docmind.model.DocumentStatus;
 import com.govind.ai.docmind.repository.DocumentMetadataRepo;
 import com.govind.ai.docmind.service.DocumentIngestionService;
 import com.govind.ai.docmind.service.DocumentMetadataService;
 import com.govind.ai.docmind.service.DocumentParserService;
+import com.govind.ai.docmind.util.DocumentMetadataUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author govind.chidrawar
@@ -29,6 +34,8 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
     private final DocumentMetadataRepo documentMetadataRepo;
     private final DocumentParserService parserService;
     private final DocumentIngestionService ingestionService;
+    private final ModelMapper modelMapper;
+
 
     @Override
     @Transactional
@@ -39,7 +46,7 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
         }
 
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
-        String contentType = file.getContentType() != null ? file.getContentType() : "application/octat-stream";
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
 
         // Create document metadata and save
         DocumentMetadata documentMetadata = DocumentMetadata
@@ -74,6 +81,51 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
 
     }
 
+    @Override
+    public DocumentMetadataDto findDocumentById(String documentId) {
+        log.info("Finding document with id={}", documentId);
+        DocumentMetadata documentMetadata = this.documentMetadataRepo.findById(UUID.fromString(documentId)).orElseThrow(() -> new ResourceNotFoundException("Document with id: " + documentId + " not found"));
+        return DocumentMetadataUtil.toDto(documentMetadata);
+    }
+
+    @Override
+    public List<DocumentMetadataDto> findAllDocuments() {
+        List<DocumentMetadata> documentMetadataList = this.documentMetadataRepo.findAll();
+        return documentMetadataList.stream().map(DocumentMetadataUtil::toDto).toList();
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocumentById(String documentId) {
+        UUID id = UUID.fromString(documentId);
+        DocumentMetadata documentMetadata = documentMetadataRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document with id: " + documentId + " not found"));
+
+        log.info("Deleting document with id: {} and their vectors", documentId);
+
+        ingestionService.deleteDocumentVectors(documentId);
+        documentMetadataRepo.delete(documentMetadata);
+
+        log.info("Successfully deleted document with id: {} and their vectors", documentId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllDocuments() {
+        List<UUID> documentIds = documentMetadataRepo.findAllIds();
+
+        if (documentIds.isEmpty()) {
+            log.info("No documents found for deletion");
+            return;
+        }
+
+        log.info("Deleting {} documents and their vectors", documentIds.size());
+
+        ingestionService.deleteAllDocumentVectors(documentIds);
+        documentMetadataRepo.deleteAll();
+        log.info("Successfully deleted {} documents and their vectors", documentIds.size());
+    }
+
+
     /**
      * Build API response.
      */
@@ -92,7 +144,6 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
      */
     private void markAsIndexed(DocumentMetadata metadata) {
         metadata.setStatus(DocumentStatus.INDEXED);
-        metadata.setTotalChunks(metadata.getTotalChunks());
         metadata.setErrorMessage(null);
         documentMetadataRepo.save(metadata);
     }

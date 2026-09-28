@@ -1,20 +1,24 @@
 package com.govind.ai.docmind.controller;
 
 import com.govind.ai.docmind.dto.ApiResponse;
+import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
 import com.govind.ai.docmind.model.DocumentStatus;
 import com.govind.ai.docmind.service.DocumentMetadataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * @author govind.chidrawar
@@ -57,5 +61,33 @@ public class DocumentController {
         } else {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(ApiResponse.error(documentResponseDto, "Document upload failed"));
         }
+    }
+
+    @Operation( summary = "This api is used to get an uploaded document metadata by its id")
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<DocumentMetadataDto>> getDocument( @Valid @NotEmpty(message = "Document Id can't be null or empty") String documentId) {
+        DocumentMetadataDto documentMetadataDto = documentService.findDocumentById(documentId);
+        return ResponseEntity.ok(ApiResponse.success(documentMetadataDto));
+    }
+
+    @GetMapping
+    @Operation( summary = "This api is used to get all uploaded documents metadata")
+    public ResponseEntity<ApiResponse<List<DocumentMetadataDto>>> getAllDocuments() {
+        List<DocumentMetadataDto> documentMetadataDtoList = documentService.findAllDocuments();
+        return ResponseEntity.ok(ApiResponse.success(documentMetadataDtoList));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation( summary = "This api is used to delete an uploaded document and their vectors by its id")
+    public ResponseEntity<ApiResponse<?>> deleteDocumentById(String documentId) {
+        documentService.deleteDocumentById(documentId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Document and their vectors deleted successfully"));
+    }
+
+    @DeleteMapping
+    @Operation( summary = "This api is used to delete all the uploaded documents and their vectors")
+    public ResponseEntity<ApiResponse<?>> deleteAllDocuments() {
+        documentService.deleteAllDocuments();
+        return ResponseEntity.ok(ApiResponse.success(null, "All documents and their vectors deleted successfully"));
     }
 }

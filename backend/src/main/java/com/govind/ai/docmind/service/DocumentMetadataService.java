@@ -1,8 +1,10 @@
 package com.govind.ai.docmind.service;
 
+import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  *
@@ -12,4 +14,12 @@ import org.springframework.web.multipart.MultipartFile;
 public interface DocumentMetadataService {
 
     DocumentResponseDto uploadAndProcess(MultipartFile file);
+
+    DocumentMetadataDto findDocumentById(String documentId);
+
+    List<DocumentMetadataDto> findAllDocuments();
+
+    void deleteDocumentById(String documentId);
+
+    void deleteAllDocuments();
 }

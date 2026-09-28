@@ -12,3 +12,7 @@
 # Pull and Run Ollama in Container
 - docker run -d --name ollama --network docmind-network -p 11434:11434 -v ollama_data:/root/.ollama ollama/ollama
 - docker exec -it ollama ollama pull codellama  -------> download codellama model
+
+# Pull and Run Ollama in Container llama3.1:8b 
+- Remove codellama and use llama3.1:8b due to larger context window 128k
+- docker exec -it ollama ollama pull llama3.1:8b

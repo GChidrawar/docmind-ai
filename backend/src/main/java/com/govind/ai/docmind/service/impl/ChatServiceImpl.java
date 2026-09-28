@@ -4,9 +4,7 @@ import com.govind.ai.docmind.config.AppProperties;
 import com.govind.ai.docmind.dto.ChatRequestDto;
 import com.govind.ai.docmind.dto.ChatResponseDto;
 import com.govind.ai.docmind.dto.CitationDto;
-import com.govind.ai.docmind.dto.DocumentResponseDto;
 import com.govind.ai.docmind.service.ChatService;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -67,7 +65,11 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Flux<String> streamQuestionAnswer(ChatRequestDto requestDto) {
-        return null;
+        log.info("Streaming query: '{}'", requestDto.question());
+        List<Document> similarDocuments = this.retrieveRelevantDocuments(requestDto.question(), requestDto.documentId(), requestDto.topK(), requestDto.minSimilarity());
+        String contextString = this.buildContextString(similarDocuments);
+        String prompt = buildPrompt(requestDto.question(), contextString);
+        return chatClient.prompt().user(prompt).stream().content().concatWith(Flux.just("[DONE]"));
     }
 
     private List<Document> retrieveRelevantDocuments(@NotEmpty(message = "Query can not be empty") String query, UUID documentId, Integer topK, Double similarityThreshold) {
@@ -86,8 +88,8 @@ public class ChatServiceImpl implements ChatService {
         if (documentId != null) {
             log.info("Filtering from vector store for documentId {} :", documentId);
             FilterExpressionBuilder expressionBuilder = new FilterExpressionBuilder();
-            Filter.Expression documentId1 = expressionBuilder.eq("documentId", documentId.toString()).build();
-            searchRequestBuilder.filterExpression(documentId1);
+            Filter.Expression documentFilter = expressionBuilder.eq("documentId", documentId.toString()).build();
+            searchRequestBuilder.filterExpression(documentFilter);
         }
 
         try {
@@ -114,7 +116,7 @@ public class ChatServiceImpl implements ChatService {
         return similarDocuments.stream().map(doc -> {
             String fileName = (String) doc.getMetadata().getOrDefault("fileName", "Unknown File");
             Object page = doc.getMetadata().getOrDefault("pageNumber", "N/A");
-            return String.format("[Source: %s | Page: %s]\n%s", fileName, page, escapePercent(doc.getText()));
+            return String.format("[Source: %s | Page: %s]\n%s", fileName, page, doc.getText());
         }).collect(Collectors.joining("\n\n---\n\n"));
 
     }
@@ -124,31 +126,32 @@ public class ChatServiceImpl implements ChatService {
 
         if (contextText != null && !contextText.isBlank()) {
             return """
-                           Document Context:
-                           ---------------------
-                           %s
-                           ---------------------
-                           User Message / Question: %s
-                           Instructions:
-                           - If the user's question relates to the document context above, prioritize answering using that context and reference key sections.
-                           - If the user is asking a general question, greeting, or discussing topics beyond the document context, respond helpfully and conversationally using your general knowledge while weaving in relevant document context if applicable
-                    
-                    """.formatted(escapePercent(contextText), escapePercent(question));
-        } else {
-            return """
-                       User Message / Question:
-                       %s
-                       Instructions:
-                          - Respond helpfully, accurately, and conversationally to the user's message using your broad knowledge base.
-                    
-                    """.formatted(escapePercent(question));
+                    Document Context:
+                    ---------------------
+                    """
+                    + contextText
+                    + """
+
+                    ---------------------
+                    User Message / Question: """
+                    + question
+                    + """
+
+                    Instructions:
+                    - If the user's question relates to the document context above, prioritize answering using that context and reference key sections.
+                    - If the user is asking a general question, greeting, or discussing topics beyond the document context, respond helpfully and conversationally using your general knowledge while weaving in relevant document context if applicable
+                    """;
         }
 
+        return """
+                User Message / Question:
+                """
+                + question
+                + """
 
-    }
-    // Escapes literal '%' so it isn't misread as a format specifier by .formatted()
-    private String escapePercent(String text) {
-        return text == null ? "" : text.replace("%", "%%");
+                Instructions:
+                - Respond helpfully, accurately, and conversationally to the user's message using your broad knowledge base.
+                """;
     }
 
 }

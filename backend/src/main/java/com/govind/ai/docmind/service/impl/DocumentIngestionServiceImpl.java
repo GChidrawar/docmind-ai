@@ -13,11 +13,10 @@ import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +26,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     private final VectorStore vectorStore;
     private final DocumentMetadataRepo documentMetadataRepo;
     private final AppProperties appProperties;
+
 
     @Override
     public Integer ingest(DocumentMetadata metadata, List<Document> parsedDocs) {
@@ -89,12 +89,16 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             Document chunk = chunks.get(index);
 
             Map<String, Object> enrichedMetadata = new HashMap<>(chunk.getMetadata());
+            enrichedMetadata.remove("chunk_index");
+            enrichedMetadata.remove("total_chunks");
+
             enrichedMetadata.put("documentId", metadata.getId().toString());
             enrichedMetadata.put("fileName", metadata.getFilename());
             enrichedMetadata.put("contentType", metadata.getContentType());
             enrichedMetadata.put("chunkIndex", index);
-
+            enrichedMetadata.put("totalChunks", chunks.size());
             addPageNumber(enrichedMetadata, chunk);
+
             Document enrichedDocument = new Document(chunk.getText(), enrichedMetadata);
             enrichedChunks.add(enrichedDocument);
         }
@@ -139,9 +143,26 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     }
 
 
-    private void deleteDocumentVectors(String documentId) {
+    @Override
+    public void deleteDocumentVectors(String documentId) {
+        if(StringUtils.isEmpty(documentId)) return;
+
         log.info("Deleting vector chunks [documentId={}]", documentId);
         vectorStore.delete("documentId == '" + documentId + "'");
-        log.info("Vector chunks deleted [documentId={}]", documentId);
+        log.info("Vector chunks deleted successfully [documentId={}]", documentId);
+    }
+
+    @Override
+    public void deleteAllDocumentVectors(List<UUID> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return;
+        }
+
+        String filterExpression = documentIds.stream()
+                .map(id -> "documentId == '" + id + "'")
+                .collect(Collectors.joining(" OR "));
+
+        vectorStore.delete(filterExpression);
+        log.info("Vector chunks deleted successfully [document count= {}]", documentIds.size());
     }
 }

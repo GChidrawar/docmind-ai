@@ -25,7 +25,9 @@ spring:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        model: ${CHAT_MODEL:codellama}
+        model: "${CHAT_MODEL:llama3.1:8b}"
+        num-ctx: 8192
+        temperature: 0.2
       embedding:
           model: ${EMBEDDING_MODEL:nomic-embed-text}
     #open ai configurations

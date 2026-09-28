@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 /**
  * REST controller responsible for managing chat-related operations.
@@ -36,5 +37,11 @@ public class ChatController {
     public ResponseEntity<ApiResponse<ChatResponseDto>> askQuestion(@Valid @RequestBody ChatRequestDto requestDto) {
         ChatResponseDto chatResponseDto = chatService.askQuestion(requestDto);
         return ResponseEntity.ok(ApiResponse.success(chatResponseDto));
+    }
+
+    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Real-time Q&A answer stream via Server-Sent Events (SSE)")
+    public Flux<String> streamQuestion(@Valid @RequestBody ChatRequestDto requestDto) {
+        return chatService.streamQuestionAnswer(requestDto);
     }
 }
