@@ -12,6 +12,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -29,6 +30,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Integer ingest(DocumentMetadata metadata, List<Document> parsedDocs) {
 
         log.info("Starting document ingestion [id={}, name={}, pages={}]", metadata.getId(), metadata.getFilename(), parsedDocs.size());
@@ -38,7 +40,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             markAsProcessing(metadata, parsedDocs.size());
 
             // 2. Split parsed documents into smaller chunks
-            List<Document> chunks = splitIntoChunks(parsedDocs);
+            List<Document> chunks = splitIntoChunks(cleanText(parsedDocs));
 
             if (chunks.isEmpty()) {
                 return 0;
@@ -52,14 +54,30 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             // 4. Store chunks in vector store
             storeChunks(enrichedChunks, metadata);
             metadata.setTotalChunks(enrichedChunks.size());
+            documentMetadataRepo.save(metadata);
 
             log.info("Successfully indexed document [id={}, name={}, pages={}, chunks={}]", metadata.getId(), metadata.getFilename(), metadata.getTotalPages(), enrichedChunks.size());
             return enrichedChunks.size();
 
         } catch (Exception ex) {
             log.error("Failed to ingest document [id={}, name={}]", metadata.getId(), metadata.getFilename(), ex);
-            throw new DocumentProcessingException(ex.getMessage());
+            throw new DocumentProcessingException(ex.getMessage(), ex);
         }
+    }
+
+
+    private List<Document> cleanText(List<Document> docs) {
+        return docs.stream()
+                .map(doc -> doc.mutate().text(normalizeWhitespace(doc.getText())).build())
+                .toList();
+    }
+
+    private String normalizeWhitespace(String text) {
+        return text
+                .replaceAll("[ \\t\\u00A0]+", " ")
+                .replaceAll(" ?\\n ?", "\n")
+                .replaceAll("\\n{3,}", "\n\n")
+                .trim();
     }
 
     /**
@@ -93,6 +111,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             enrichedMetadata.remove("total_chunks");
 
             enrichedMetadata.put("documentId", metadata.getId().toString());
+            enrichedMetadata.put("userId", metadata.getUser().getId().toString());
             enrichedMetadata.put("fileName", metadata.getFilename());
             enrichedMetadata.put("contentType", metadata.getContentType());
             enrichedMetadata.put("chunkIndex", index);
@@ -119,6 +138,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
         if (pageNumber != null) {
             metadata.put("pageNumber", pageNumber);
+            metadata.remove("page_number");
         }
     }
 

@@ -1,8 +1,11 @@
 package com.govind.ai.docmind.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.modelmapper.ModelMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ApplicationConfig {
+
+    private static final String BEARER_SCHEME = "bearerAuth";
 
     // swagger configuration
     @Bean
@@ -29,7 +34,11 @@ public class ApplicationConfig {
                                         .email("support@cgtech.dev")
                                         .url("https://cgtech.dev")
                                 )
-                );
+                )
+                // Adds the "Authorize" button; paste the access token from /auth/login (without "Bearer ")
+                .components(new Components().addSecuritySchemes(BEARER_SCHEME,
+                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
     }
 
     @Bean

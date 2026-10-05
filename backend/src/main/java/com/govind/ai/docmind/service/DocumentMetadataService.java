@@ -2,6 +2,7 @@ package com.govind.ai.docmind.service;
 
 import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
+import com.govind.ai.docmind.model.User;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -13,13 +14,20 @@ import java.util.List;
  */
 public interface DocumentMetadataService {
 
-    DocumentResponseDto uploadAndProcess(MultipartFile file);
+    DocumentResponseDto uploadAndProcess(MultipartFile file, User user);
 
-    DocumentMetadataDto findDocumentById(String documentId);
+    /** Returns the user's own document; an admin may read any document. */
+    DocumentMetadataDto findDocumentById(String documentId, User user);
 
-    List<DocumentMetadataDto> findAllDocuments();
+    /** Documents owned by the given user. */
+    List<DocumentMetadataDto> findAllDocuments(User user);
 
-    void deleteDocumentById(String documentId);
+    /** Documents of every user; for admin endpoints only. */
+    List<DocumentMetadataDto> findAllDocumentsOfAllUsers();
 
-    void deleteAllDocuments();
+    /** Deletes the user's own document; an admin may delete any document. */
+    void deleteDocumentById(String documentId, User user);
+
+    /** Deletes only the given user's documents. */
+    void deleteAllDocuments(User user);
 }

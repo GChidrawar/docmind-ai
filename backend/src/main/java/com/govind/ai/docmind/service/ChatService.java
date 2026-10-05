@@ -2,6 +2,7 @@ package com.govind.ai.docmind.service;
 
 import com.govind.ai.docmind.dto.ChatRequestDto;
 import com.govind.ai.docmind.dto.ChatResponseDto;
+import com.govind.ai.docmind.model.User;
 import reactor.core.publisher.Flux;
 
 /**
@@ -12,7 +13,8 @@ import reactor.core.publisher.Flux;
  */
 public interface ChatService {
 
-    ChatResponseDto askQuestion(ChatRequestDto request);
+    /** Answers using only the given user's documents. */
+    ChatResponseDto askQuestion(ChatRequestDto request, User user);
 
-    Flux<String> streamQuestionAnswer(ChatRequestDto requestDto);
+    Flux<String> streamQuestionAnswer(ChatRequestDto requestDto, User user);
 }

@@ -3,12 +3,14 @@ package com.govind.ai.docmind.controller;
 import com.govind.ai.docmind.dto.ApiResponse;
 import com.govind.ai.docmind.dto.ChatRequestDto;
 import com.govind.ai.docmind.dto.ChatResponseDto;
+import com.govind.ai.docmind.model.User;
 import com.govind.ai.docmind.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,14 +36,14 @@ public class ChatController {
 
     @PostMapping("/query")
     @Operation(summary = "Ask a question against all documents or a specific document with citations")
-    public ResponseEntity<ApiResponse<ChatResponseDto>> askQuestion(@Valid @RequestBody ChatRequestDto requestDto) {
-        ChatResponseDto chatResponseDto = chatService.askQuestion(requestDto);
+    public ResponseEntity<ApiResponse<ChatResponseDto>> askQuestion(@Valid @RequestBody ChatRequestDto requestDto, @AuthenticationPrincipal User user) {
+        ChatResponseDto chatResponseDto = chatService.askQuestion(requestDto, user);
         return ResponseEntity.ok(ApiResponse.success(chatResponseDto));
     }
 
     @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "Real-time Q&A answer stream via Server-Sent Events (SSE)")
-    public Flux<String> streamQuestion(@Valid @RequestBody ChatRequestDto requestDto) {
-        return chatService.streamQuestionAnswer(requestDto);
+    public Flux<String> streamQuestion(@Valid @RequestBody ChatRequestDto requestDto, @AuthenticationPrincipal User user) {
+        return chatService.streamQuestionAnswer(requestDto, user);
     }
 }

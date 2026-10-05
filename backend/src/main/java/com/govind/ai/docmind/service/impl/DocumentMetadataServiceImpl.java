@@ -1,11 +1,13 @@
 package com.govind.ai.docmind.service.impl;
 
+import com.govind.ai.docmind.constants.Role;
 import com.govind.ai.docmind.dto.DocumentMetadataDto;
 import com.govind.ai.docmind.dto.DocumentResponseDto;
 import com.govind.ai.docmind.exception.DocumentProcessingException;
 import com.govind.ai.docmind.exception.ResourceNotFoundException;
 import com.govind.ai.docmind.model.DocumentMetadata;
 import com.govind.ai.docmind.model.DocumentStatus;
+import com.govind.ai.docmind.model.User;
 import com.govind.ai.docmind.repository.DocumentMetadataRepo;
 import com.govind.ai.docmind.service.DocumentIngestionService;
 import com.govind.ai.docmind.service.DocumentMetadataService;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -38,8 +41,7 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
 
 
     @Override
-    @Transactional
-    public DocumentResponseDto uploadAndProcess(MultipartFile file) {
+    public DocumentResponseDto uploadAndProcess(MultipartFile file, User user) {
 
         if (file.isEmpty()) {
             throw new DocumentProcessingException("Uploaded file is empty");
@@ -55,6 +57,7 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
                 .contentType(contentType)
                 .status(DocumentStatus.UPLOADING)
                 .fileSize(file.getSize())
+                .user(user)
                 .build();
 
         documentMetadataRepo.save(documentMetadata);
@@ -82,23 +85,25 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
     }
 
     @Override
-    public DocumentMetadataDto findDocumentById(String documentId) {
+    public DocumentMetadataDto findDocumentById(String documentId, User user) {
         log.info("Finding document with id={}", documentId);
-        DocumentMetadata documentMetadata = this.documentMetadataRepo.findById(UUID.fromString(documentId)).orElseThrow(() -> new ResourceNotFoundException("Document with id: " + documentId + " not found"));
-        return DocumentMetadataUtil.toDto(documentMetadata);
+        return DocumentMetadataUtil.toDto(findAccessibleDocument(documentId, user));
     }
 
     @Override
-    public List<DocumentMetadataDto> findAllDocuments() {
-        List<DocumentMetadata> documentMetadataList = this.documentMetadataRepo.findAll();
-        return documentMetadataList.stream().map(DocumentMetadataUtil::toDto).toList();
+    public List<DocumentMetadataDto> findAllDocuments(User user) {
+        return documentMetadataRepo.findAllByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(DocumentMetadataUtil::toDto).toList();
+    }
+
+    @Override
+    public List<DocumentMetadataDto> findAllDocumentsOfAllUsers() {
+        return documentMetadataRepo.findAllByOrderByCreatedAtDesc().stream().map(DocumentMetadataUtil::toDto).toList();
     }
 
     @Override
     @Transactional
-    public void deleteDocumentById(String documentId) {
-        UUID id = UUID.fromString(documentId);
-        DocumentMetadata documentMetadata = documentMetadataRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document with id: " + documentId + " not found"));
+    public void deleteDocumentById(String documentId, User user) {
+        DocumentMetadata documentMetadata = findAccessibleDocument(documentId, user);
 
         log.info("Deleting document with id: {} and their vectors", documentId);
 
@@ -110,8 +115,10 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
 
     @Override
     @Transactional
-    public void deleteAllDocuments() {
-        List<UUID> documentIds = documentMetadataRepo.findAllIds();
+    public void deleteAllDocuments(User user) {
+        // Only the caller's own documents are removed, never other users' documents
+        Long userId = user.getId();
+        List<UUID> documentIds = documentMetadataRepo.findIdsByUserId(userId);
 
         if (documentIds.isEmpty()) {
             log.info("No documents found for deletion");
@@ -121,8 +128,20 @@ public class DocumentMetadataServiceImpl implements DocumentMetadataService {
         log.info("Deleting {} documents and their vectors", documentIds.size());
 
         ingestionService.deleteAllDocumentVectors(documentIds);
-        documentMetadataRepo.deleteAll();
+        documentMetadataRepo.deleteAllByUserId(userId);
         log.info("Successfully deleted {} documents and their vectors", documentIds.size());
+    }
+
+    /**
+     * Loads a document the caller may access: their own, or any document for an admin.
+     * A document owned by someone else is reported as not found
+     */
+    private DocumentMetadata findAccessibleDocument(String documentId, User user) {
+        UUID id = UUID.fromString(documentId);
+        Optional<DocumentMetadata> document = user.getRole() == Role.ADMIN
+                ? documentMetadataRepo.findById(id)
+                : documentMetadataRepo.findByIdAndUserId(id, user.getId());
+        return document.orElseThrow(() -> new ResourceNotFoundException("Document with id: " + documentId + " not found"));
     }
 
 

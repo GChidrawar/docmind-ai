@@ -4,6 +4,7 @@ import com.govind.ai.docmind.config.AppProperties;
 import com.govind.ai.docmind.dto.ChatRequestDto;
 import com.govind.ai.docmind.dto.ChatResponseDto;
 import com.govind.ai.docmind.dto.CitationDto;
+import com.govind.ai.docmind.model.User;
 import com.govind.ai.docmind.service.ChatService;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,10 @@ import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -43,11 +47,11 @@ public class ChatServiceImpl implements ChatService {
      * retrieved via vector similarity search.
      * */
     @Override
-    public ChatResponseDto askQuestion(ChatRequestDto request) {
+    public ChatResponseDto askQuestion(ChatRequestDto request, User user) {
         long startTime = System.currentTimeMillis();
 
         // Retrieve relevant chunks of the document from vector store
-        List<Document> similarDocuments = this.retrieveRelevantDocuments(request.question(), request.documentId(), request.topK(), request.minSimilarity());
+        List<Document> similarDocuments = this.retrieveRelevantDocuments(request.question(), request.documentId(), request.topK(), request.minSimilarity(), user);
 
         List<CitationDto> citationDtos = similarDocuments.stream().map(CitationDto::from).toList();
 
@@ -64,15 +68,15 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Flux<String> streamQuestionAnswer(ChatRequestDto requestDto) {
+    public Flux<String> streamQuestionAnswer(ChatRequestDto requestDto, User user) {
         log.info("Streaming query: '{}'", requestDto.question());
-        List<Document> similarDocuments = this.retrieveRelevantDocuments(requestDto.question(), requestDto.documentId(), requestDto.topK(), requestDto.minSimilarity());
+        List<Document> similarDocuments = this.retrieveRelevantDocuments(requestDto.question(), requestDto.documentId(), requestDto.topK(), requestDto.minSimilarity(), user);
         String contextString = this.buildContextString(similarDocuments);
         String prompt = buildPrompt(requestDto.question(), contextString);
         return chatClient.prompt().user(prompt).stream().content().concatWith(Flux.just("[DONE]"));
     }
 
-    private List<Document> retrieveRelevantDocuments(@NotEmpty(message = "Query can not be empty") String query, UUID documentId, Integer topK, Double similarityThreshold) {
+    private List<Document> retrieveRelevantDocuments(@NotEmpty(message = "Query can not be empty") String query, UUID documentId, Integer topK, Double similarityThreshold, User user) {
 
         AppProperties.RagProperties ragProperties = appProperties.getRag();
 
@@ -85,12 +89,19 @@ public class ChatServiceImpl implements ChatService {
             searchRequestBuilder.similarityThreshold(effectiveSimilarityThreshold);
         }
 
+        // Always restrict the search to the caller's own chunks; an optional documentId narrows it further
+        String userId = user.getId().toString();
+        FilterExpressionBuilder expressionBuilder = new FilterExpressionBuilder();
+        Filter.Expression filter;
         if (documentId != null) {
             log.info("Filtering from vector store for documentId {} :", documentId);
-            FilterExpressionBuilder expressionBuilder = new FilterExpressionBuilder();
-            Filter.Expression documentFilter = expressionBuilder.eq("documentId", documentId.toString()).build();
-            searchRequestBuilder.filterExpression(documentFilter);
+            filter = expressionBuilder.and(
+                    expressionBuilder.eq("userId", userId),
+                    expressionBuilder.eq("documentId", documentId.toString())).build();
+        } else {
+            filter = expressionBuilder.eq("userId", userId).build();
         }
+        searchRequestBuilder.filterExpression(filter);
 
         try {
             List<Document> documents = vectorStore.similaritySearch(searchRequestBuilder.build());
