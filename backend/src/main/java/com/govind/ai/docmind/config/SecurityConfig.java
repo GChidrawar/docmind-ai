@@ -1,6 +1,7 @@
 package com.govind.ai.docmind.config;
 
 import com.govind.ai.docmind.constants.Role;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +40,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth ->
                                 auth
+                                        // The original request was already authorized; async (SSE stream completion)
+                                        // and error re-dispatches carry no JWT, as OncePerRequestFilter skips them
+                                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                                         .requestMatchers(
                                                 "/api/v1/auth/**",
                                                 "/v3/api-docs/**",

@@ -1,8 +1,6 @@
 package com.govind.ai.docmind.controller;
 
-import com.govind.ai.docmind.dto.ApiResponse;
-import com.govind.ai.docmind.dto.ChatRequestDto;
-import com.govind.ai.docmind.dto.ChatResponseDto;
+import com.govind.ai.docmind.dto.*;
 import com.govind.ai.docmind.model.User;
 import com.govind.ai.docmind.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,5 +43,15 @@ public class ChatController {
     @Operation(summary = "Real-time Q&A answer stream via Server-Sent Events (SSE)")
     public Flux<String> streamQuestion(@Valid @RequestBody ChatRequestDto requestDto, @AuthenticationPrincipal User user) {
         return chatService.streamQuestionAnswer(requestDto, user);
+    }
+
+    @PostMapping("/search/similarity")
+    @Operation(summary = "Perform semantic similarity search on stored document vectors")
+    public ResponseEntity<ApiResponse<SearchResultDto>> searchSimilar(
+            @Valid @RequestBody SearchRequestDto request,
+            @AuthenticationPrincipal User user
+    ) {
+        SearchResultDto results = chatService.searchSimilarChunks(request,user);
+        return ResponseEntity.ok(ApiResponse.success(results));
     }
 }

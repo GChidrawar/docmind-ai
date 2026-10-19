@@ -41,8 +41,9 @@ public class Conversation {
     @UpdateTimestamp
     private Instant updatedAt;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "conversation")
     @OrderBy("createdAt ASC")
+    @Builder.Default
     private Set<ChatMessage> chatMessages = new LinkedHashSet<>();
 
 }

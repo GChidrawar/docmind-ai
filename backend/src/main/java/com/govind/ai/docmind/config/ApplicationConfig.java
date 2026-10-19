@@ -8,6 +8,9 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.modelmapper.ModelMapper;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -30,7 +33,7 @@ public class ApplicationConfig {
                                 .description("REST API for DocMindAI: multi-format document ingestion, vector embeddings with PostgreSQL pgvector, and  hybrid conversational Q&A powered by Ollama")
                                 .version("1.0.0")
                                 .contact(new Contact()
-                                        .name("CG Technologies")
+                                        .name("CG Tech Dev")
                                         .email("support@cgtech.dev")
                                         .url("https://cgtech.dev")
                                 )
@@ -42,7 +45,7 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public ChatClient chatClient(ChatClient.Builder builder) {
+    public ChatClient chatClient(ChatClient.Builder builder, ChatMemory chatMemory) {
         return builder
                 .defaultSystem("""
                             You are DocMind, an intelligent, versatile, and friendly AI document intelligence assistant.
@@ -64,8 +67,13 @@ public class ApplicationConfig {
                                        Be clear, professional, and conversational. Structure responses using
                                        Markdown when appropriate, including headings, bullet points, numbered
                                        lists, bold text, and code blocks where they improve readability.
+                        
+                                Document Context is :
+                                    {docContext}
+          
                         """
                 )
+                .defaultAdvisors(new SimpleLoggerAdvisor(), MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 

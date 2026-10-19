@@ -2,6 +2,8 @@ package com.govind.ai.docmind.service;
 
 import com.govind.ai.docmind.dto.ChatRequestDto;
 import com.govind.ai.docmind.dto.ChatResponseDto;
+import com.govind.ai.docmind.dto.SearchRequestDto;
+import com.govind.ai.docmind.dto.SearchResultDto;
 import com.govind.ai.docmind.model.User;
 import reactor.core.publisher.Flux;
 
@@ -17,4 +19,6 @@ public interface ChatService {
     ChatResponseDto askQuestion(ChatRequestDto request, User user);
 
     Flux<String> streamQuestionAnswer(ChatRequestDto requestDto, User user);
+
+    SearchResultDto searchSimilarChunks(SearchRequestDto request, User user);
 }
