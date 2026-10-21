@@ -34,10 +34,15 @@ app:
 
   rag:
     # Target chunk size in tokens
-    chunk-size: 700
+    chunk-size: 600
 
     # Number of relevant chunks to retrieve
     top-k: 5
 
     # Minimum similarity score for retrieved chunks
     similarity-threshold: 0.6
+
+  cors:
+    allowed-origins: "http://localhost:5132"
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"

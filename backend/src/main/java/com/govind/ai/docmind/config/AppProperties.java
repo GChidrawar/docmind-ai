@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class AppProperties {
 
     private RagProperties rag = new RagProperties();
+    private CorsProperties cors = new CorsProperties();
 
     @Getter
     @Setter
@@ -30,5 +31,15 @@ public class AppProperties {
         private int maxNumChunks = 10000;
         private int topK = 5;
         private double similarityThreshold = 0.0;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CorsProperties {
+        private String allowedOrigins;
+        private String allowedMethods;
+        private String allowedHeaders;
     }
 }
